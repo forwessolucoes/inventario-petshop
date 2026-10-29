@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inventario Pet Shop</title>
+<meta name="theme-color" content="#1f6f4a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Inventario">
+<link rel="manifest" href="./manifest.webmanifest" crossorigin="use-credentials">
+<link rel="apple-touch-icon" href="./icone-180.png">
+<link rel="icon" type="image/png" href="./icone-192.png">
+<style>
+:root{
+  --verde:#1f6f4a; --verde-esc:#17533a; --verde-claro:#e4f1ea;
+  --fundo:#f5f7f5; --papel:#ffffff; --texto:#1b2420; --cinza:#5b6a62; --borda:#cfd8d3;
+  --erro:#b3261e; --erro-claro:#fbe9e7; --aviso:#fff4d6; --aviso-borda:#e0b84a;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fundo);color:var(--texto);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+[hidden]{display:none!important}
+h1{font-size:1.35rem;margin:0}
+h2{font-size:1.1rem;margin:1.2rem 0 .5rem}
+p{margin:.4rem 0}
+small{color:var(--cinza)}
+#app{max-width:640px;margin:0 auto;padding:0 14px 40px}
+.topo{display:flex;align-items:center;gap:10px;padding:14px 0 8px}
+.topo h1{flex:1}
+button{font:inherit;min-height:48px;padding:10px 16px;border-radius:10px;border:1px solid var(--verde);background:var(--papel);color:var(--verde-esc);cursor:pointer;touch-action:manipulation}
+button.principal{background:var(--verde);color:var(--papel);font-weight:600}
+button.perigo{border-color:var(--erro);color:var(--erro)}
+button:disabled{opacity:.5}
+button.cheio{width:100%;margin:6px 0}
+button.item{width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px;border-color:var(--borda);color:var(--texto)}
+button.opcao{flex:1;border-color:var(--borda);color:var(--texto)}
+button.opcao[aria-pressed="true"]{background:var(--verde);border-color:var(--verde);color:var(--papel);font-weight:600}
+:focus-visible{outline:3px solid var(--verde);outline-offset:2px}
+.linha{display:flex;gap:8px;flex-wrap:wrap}
+.linha>button{flex:1;min-width:100px}
+.lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.lista li{display:flex;gap:6px}
+.lista li>.item{flex:1}
+.marca{background:var(--verde-claro);color:var(--verde-esc);border-radius:8px;padding:2px 8px;font-size:.85rem}
+.vazio{color:var(--cinza)}
+.campo{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+.campo .rot{font-weight:600}
+input[type=text],input[type=search]{font:inherit;min-height:48px;width:100%;padding:8px 12px;border:1px solid var(--borda);border-radius:10px;background:var(--papel);color:var(--texto)}
+input.inv{border-color:var(--erro);background:var(--erro-claro)}
+.erro{color:var(--erro);font-size:.9rem;min-height:0}
+.erro:empty{display:none}
+.faixa{position:sticky;top:0;z-index:30;padding:12px 14px;font-weight:600;text-align:center}
+.faixa.vermelha{background:var(--erro);color:var(--papel)}
+.faixa.amarela{background:var(--aviso);color:var(--texto);border-bottom:2px solid var(--aviso-borda);font-weight:400}
+.camera{position:relative;background:var(--texto);border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
+.camera video{width:100%;height:100%;object-fit:cover}
+.camera .miraa{position:absolute;left:12%;right:12%;top:42%;height:16%;border:2px solid var(--papel);border-radius:8px;opacity:.7;pointer-events:none}
+.camera-msg{color:var(--papel);padding:16px;text-align:center}
+.fundo{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);overflow:auto;padding:16px;display:flex;align-items:flex-start;justify-content:center}
+.cartao{background:var(--papel);border-radius:14px;padding:16px;width:100%;max-width:520px;margin:auto}
+.cartao h2{margin-top:0}
+.etq{background:var(--papel);border:1px solid var(--borda);border-radius:10px;padding:10px;margin:8px 0;break-inside:avoid}
+.etq svg{max-width:100%;height:auto}
+pre.res{white-space:pre-wrap;background:var(--papel);border:1px solid var(--borda);border-radius:10px;padding:12px}
+#autoteste-resultado.ok{color:var(--verde)}
+#autoteste-resultado.falhou{color:var(--erro)}
+@media print{
+  body{background:var(--papel)}
+  .nao-imprime,.faixa{display:none!important}
+  #app{max-width:none;padding:0}
+  .etq{border:1px solid var(--texto)}
+}
+</style>
+</head>
+<body>
+<div id="faixa-erro" class="faixa vermelha" role="alert" hidden></div>
+<main id="app"></main>
+
+<template id="tpl-limite">
+  <h2>Limite da versao gratis</h2>
+  <p>Esta versao gratis aceita ate <span data-n></span> produtos. Voce ja tem <span data-t></span>.</p>
+  <p>Tudo o que voce ja contou continua salvo.</p>
+  <p>Para cadastrar mais produtos, conheca a versao completa: Fale com a Forwes no WhatsApp: (27) 99296-7582</p>
+  <p><a data-link href="https://wa.me/5527992967582" target="_blank" rel="noopener">Abrir contato</a></p>
+</template>
+
+<script src="./vendor/barcode-detector-3.2.1-ponyfill.js"></script>
+<script>
+'use strict';
+
+/* ---------- configuracao ---------- */
+const LIMITE_PRODUTOS = 50;
+const CHAVE = 'inventario-petshop.v1';
+const CHAVE_UI = 'inventario-petshop.ui';
+const CHAVE_ANTERIOR = 'inventario-petshop.anterior';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const FORMATOS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
+const PRECO_MAX = 99999999;
+const col = new Intl.Collator('pt-BR');
+
+/* ---------- utilitarios ---------- */
+const $ = (s, r) => (r || document).querySelector(s);
+const pad = (n, l) => String(n).padStart(l, '0');
+
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in (props || {})) {
+    const v = props[k];
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'class') e.className = v;
+    else if (v === true) e.setAttribute(k, '');
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat(Infinity)) {
+    if (c == null || c === false) continue;
+    e.append(c.nodeType ? c : String(c));
+  }
+  return e;
+}
+function botao(txt, fn, cls) {
+  return h('button', { type: 'button', class: cls || '', onclick: fn }, txt);
+}
+
+/* ---------- numeros e formatos (inteiros, nunca float) ---------- */
+// texto -> inteiro escalado; vazio = 0; invalido = null
+function lerDec(txt, casas, maxEsc) {
+  const s = String(txt).trim().replace(',', '.');
+  if (s === '') return 0;
+  const m = /^(\d*)(?:\.(\d*))?$/.exec(s);
+  if (!m) return null;
+  const ip = m[1], fp = m[2] || '';
+  if (ip === '' && fp === '') return null;
+  if (fp.length > casas || ip.length > 9) return null;
+  const v = Number(ip || '0') * Math.pow(10, casas) + Number(fp.padEnd(casas, '0') || '0');
+  return v > maxEsc ? null : v;
+}
+function lerInt(txt, max) {
+  const s = String(txt).trim();
+  if (s === '') return 0;
+  if (!/^\d{1,9}$/.test(s)) return null;
+  const v = Number(s);
+  return v > max ? null : v;
+}
+function fmtKg(g) { return Math.floor(g / 1000) + ',' + pad(g % 1000, 3); }
+function fmtKgCurto(g) { return fmtKg(g).replace(/0+$/, '').replace(/,$/, ''); }
+function fmtPreco(c) { return Math.floor(c / 100) + ',' + pad(c % 100, 2); }
+function nrm(s) {
+  return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+const cacheN = new WeakMap();
+function nomeN(p) {
+  let c = cacheN.get(p);
+  if (!c || c.nome !== p.nome) { c = { nome: p.nome, n: nrm(p.nome) }; cacheN.set(p, c); }
+  return c.n;
+}
+function dataBr(d) { return pad(d.getDate(), 2) + '/' + pad(d.getMonth() + 1, 2) + '/' + d.getFullYear(); }
+function dataArq(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1, 2) + '-' + pad(d.getDate(), 2); }
+function dataHoraArq(d) { return dataArq(d) + '-' + pad(d.getHours(), 2) + pad(d.getMinutes(), 2); }
+
+/* ---------- codigos de barras ---------- */
+function dvEan13(d12) {
+  let s = 0;
+  for (let i = 0; i < 12; i++) s += Number(d12[i]) * (i % 2 ? 3 : 1);
+  return (10 - (s % 10)) % 10;
+}
+function gerarCodigo(d) {
+  let n = d.seqCodigo, c;
+  do { n++; c = '299' + pad(n, 9); c += dvEan13(c); } while (d.produtos[c]);
+  return { codigo: c, seq: n };
+}
+function normCodigo(raw) {
+  let c = String(raw == null ? '' : raw).replace(/[\x00-\x1F\x7F]/g, '').trim();
+  if (/^\d{12}$/.test(c)) c = '0' + c;
+  return c;
+}
+const EAN_L = ['0001101', '0011001', '0010011', '0111101', '0100011', '0110001', '0101111', '0111011', '0110111', '0001011'];
+const EAN_G = ['0100111', '0110011', '0011011', '0100001', '0011101', '0111001', '0000101', '0010001', '0001001', '0010111'];
+const EAN_R = ['1110010', '1100110', '1101100', '1000010', '1011100', '1001110', '1010000', '1000100', '1001000', '1110100'];
+const EAN_P = ['LLLLLL', 'LLGLGG', 'LLGGLG', 'LLGGGL', 'LGLLGG', 'LGGLLG', 'LGGGLL', 'LGLGLG', 'LGLGGL', 'LGGLGL'];
+function svgEan13(c, esc) {
+  if (!/^\d{13}$/.test(c)) return '';
+  const d = c.split('').map(Number);
+  const par = EAN_P[d[0]];
+  let bits = '101';
+  for (let i = 0; i < 6; i++) bits += (par[i] === 'L' ? EAN_L : EAN_G)[d[i + 1]];
+  bits += '01010';
+  for (let i = 0; i < 6; i++) bits += EAN_R[d[i + 7]];
+  bits += '101';
+  let rects = '', i = 0;
+  while (i < 95) {
+    if (bits[i] === '1') {
+      let j = i;
+      while (j < 95 && bits[j] === '1') j++;
+      rects += '<rect x="' + (i + 9) + '" y="0" width="' + (j - i) + '" height="58"/>';
+      i = j;
+    } else i++;
+  }
+  const t = 'y="69" font-size="9" font-family="Arial,sans-serif"';
+  return '<svg xmlns="' + SVG_NS + '" viewBox="0 0 113 72" width="' + (113 * esc) + '" height="' + (72 * esc) +
+    '" role="img" aria-label="Codigo de barras ' + c + '"><rect width="113" height="72" fill="#fff"/>' +
+    '<g fill="#000" shape-rendering="crispEdges">' + rects + '</g>' +
+    '<text x="1" ' + t + '>' + c[0] + '</text>' +
+    '<text x="12" ' + t + ' textLength="42" lengthAdjust="spacing">' + c.slice(1, 7) + '</text>' +
+    '<text x="59" ' + t + ' textLength="42" lengthAdjust="spacing">' + c.slice(7) + '</text></svg>';
+}
+
+/* ---------- dados ---------- */
+function dbVazio() { return { versao: 1, seqCodigo: 0, produtos: {}, contagens: [] }; }
+function validaBackup(o) {
+  return !!o && typeof o === 'object' && o.versao === 1 &&
+    !!o.produtos && typeof o.produtos === 'object' && !Array.isArray(o.produtos) &&
+    Array.isArray(o.contagens);
+}
+function lerBackup(txt) {
+  let o = null;
+  try { o = JSON.parse(txt); } catch (e) { return null; }
+  return validaBackup(o) ? o : null;
+}
+function estadoDe(o) {
+  return {
+    versao: 1,
+    seqCodigo: Number.isInteger(o.seqCodigo) ? o.seqCodigo : 0,
+    produtos: o.produtos,
+    contagens: o.contagens
+  };
+}
+let bloqueado = false;
+function carregar() {
+  let t = null;
+  try { t = localStorage.getItem(CHAVE); } catch (e) { bloqueado = true; return dbVazio(); }
+  if (t === null) return dbVazio();
+  const o = lerBackup(t);
+  if (o) return estadoDe(o);
+  bloqueado = true;
+  return dbVazio();
+}
+let db = carregar();
+
+function faixaErro(msg) {
+  const f = $('#faixa-erro');
+  f.textContent = msg || '';
+  f.hidden = !msg;
+}
+const MSG_SALVAR = 'Nao foi possivel salvar. Exporte o backup agora.';
+function salvar() {
+  if (bloqueado) { faixaErro(MSG_SALVAR); return false; }
+  try {
+    localStorage.setItem(CHAVE, JSON.stringify(db));
+    faixaErro('');
+    return true;
+  } catch (e) {
+    faixaErro(MSG_SALVAR);
+    return false;
+  }
+}
+function salvarUi(u) {
+  try {
+    if (u) localStorage.setItem(CHAVE_UI, JSON.stringify(u));
+    else localStorage.removeItem(CHAVE_UI);
+  } catch (e) { /* so guarda a area atual */ }
+}
+function lerUi() {
+  try { return JSON.parse(localStorage.getItem(CHAVE_UI)); } catch (e) { return null; }
+}
+
+function reabrirContagem(d, id) {
+  if (d.contagens.some(c => c.status === 'aberta')) return false;
+  const c = d.contagens.find(x => x.id === id);
+  if (!c) return false;
+  c.status = 'aberta';
+  c.finalizadaEm = null;
+  return true;
+}
+function emContagemFinalizada(d, cod) {
+  return d.contagens.some(c => c.status === 'finalizada' && Object.values(c.itens).some(its => its[cod]));
+}
+function apagarProduto(d, cod) {
+  if (emContagemFinalizada(d, cod)) return false;
+  d.contagens.forEach(c => Object.values(c.itens).forEach(its => { delete its[cod]; }));
+  delete d.produtos[cod];
+  return true;
+}
+function prod(d, c) { return d.produtos[c] || { codigo: c, nome: c, granel: false }; }
+function novaContagem(nome) {
+  return { id: 'c' + Date.now(), nome: nome, criadaEm: new Date().toISOString(), status: 'aberta',
+    finalizadaEm: null, areas: [], itens: {} };
+}
+function itemDe(cont, area, cod) {
+  const a = cont.itens[area] || (cont.itens[area] = {});
+  return a[cod] || (a[cod] = { un: 0, g: 0 });
+}
+function somar(cont, area, cod, un, g) {
+  const it = itemDe(cont, area, cod);
+  it.un += un;
+  it.g += g;
+}
+function definirItem(cont, area, cod, un, g) {
+  if (un === 0 && g === 0) { if (cont.itens[area]) delete cont.itens[area][cod]; return; }
+  const it = itemDe(cont, area, cod);
+  it.un = un;
+  it.g = g;
+}
+function totaisPorProduto(cont) {
+  const t = {};
+  for (const a of Object.keys(cont.itens)) {
+    for (const c of Object.keys(cont.itens[a])) {
+      const it = cont.itens[a][c];
+      const x = t[c] || (t[c] = { un: 0, g: 0 });
+      x.un += it.un;
+      x.g += it.g;
+    }
+  }
+  return t;
+}
+// gramas totais; null quando nao da para saber (sacos sem peso cadastrado)
+function totalG(p, un, g) {
+  const peso = p.pesoGramas || 0;
+  if (peso > 0) return un * peso + g;
+  return un === 0 ? g : null;
+}
+function temKgAvulso(d, cod) {
+  return d.contagens.some(c => Object.keys(c.itens).some(a => c.itens[a][cod] && c.itens[a][cod].g > 0));
+}
+function podeCriarProduto(d) {
+  const x = d || db;
+  return LIMITE_PRODUTOS === 0 || Object.keys(x.produtos).length < LIMITE_PRODUTOS;
+}
+
+/* ---------- planilha (CSV) ---------- */
+function celula(t) {
+  t = String(t);
+  if (/^[=+\-@]/.test(t)) t = "'" + t;
+  return /[;"\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+const CABECALHO = ['Produto', 'Codigo', 'Area', 'Unidades', 'Kg avulso', 'Peso da unidade (kg)', 'Total em kg',
+  'Preco unidade', 'Preco kg', 'Unidades no total', 'Kg no total'];
+function gerarCsv(d, cont) {
+  const tot = totaisPorProduto(cont);
+  const linhas = [CABECALHO.join(';')];
+  for (const a of cont.areas.map(x => x.nome)) {
+    const its = cont.itens[a] || {};
+    const cods = Object.keys(its).filter(c => its[c].un > 0 || its[c].g > 0)
+      .sort((x, y) => col.compare(prod(d, x).nome, prod(d, y).nome));
+    for (const c of cods) {
+      const p = prod(d, c), it = its[c], T = tot[c];
+      const tk = totalG(p, it.un, it.g), tkT = totalG(p, T.un, T.g);
+      linhas.push([
+        celula(p.nome),
+        '="' + c.replace(/"/g, '""') + '"',
+        celula(a),
+        it.un,
+        p.granel ? fmtKg(it.g) : '',
+        p.pesoGramas ? fmtKg(p.pesoGramas) : '',
+        tk == null ? '' : fmtKg(tk),
+        p.precoCentavos ? fmtPreco(p.precoCentavos) : '',
+        p.granel && p.precoKgCentavos ? fmtPreco(p.precoKgCentavos) : '',
+        T.un,
+        tkT == null ? '' : fmtKg(tkT)
+      ].join(';'));
+    }
+  }
+  return '﻿' + linhas.join('\r\n') + '\r\n';
+}
+
+/* ---------- entrega de arquivo ---------- */
+async function entregar(nome, texto, tipo) {
+  const blob = new Blob([texto], { type: tipo });
+  try {
+    const f = new File([blob], nome, { type: tipo });
+    if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [f] })) {
+      await navigator.share({ files: [f] });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = h('a', { href: url, download: nome });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+function exportarCsv(cont) {
+  entregar('inventario-' + dataHoraArq(new Date()) + '.csv', gerarCsv(db, cont), 'text/csv');
+}
+
+/* ---------- camada de telas ---------- */
+function trocaFilhos(el, ...nodes) {
+  el.replaceChildren(...nodes.flat(Infinity).filter(n => n != null && n !== false));
+}
+let telaAtual = '', limpeza = null, ui = null, atualizaLista = function () {};
+const app = $('#app');
+function tela(nome, ...nodes) {
+  if (limpeza) { limpeza(); limpeza = null; }
+  fechaModal();
+  telaAtual = nome;
+  trocaFilhos(app, ...nodes);
+  window.scrollTo(0, 0);
+}
+function topo(titulo, voltar) {
+  return h('header', { class: 'topo nao-imprime' },
+    voltar ? botao('Voltar', voltar) : null, h('h1', {}, titulo));
+}
+function campo(rotulo, input, dica) {
+  const e = h('div', { class: 'erro', role: 'alert' });
+  const el = h('label', { class: 'campo' }, h('span', { class: 'rot' }, rotulo), input,
+    dica ? h('small', {}, dica) : null, e);
+  el.erro = function (t) { e.textContent = t || ''; input.classList.toggle('inv', !!t); };
+  return el;
+}
+function simNao(inicial, aoMudar) {
+  let v = !!inicial;
+  const bs = [true, false].map(x => h('button', { type: 'button', class: 'opcao', onclick: () => {
+    v = x; pinta(); if (aoMudar) aoMudar(v);
+  } }, x ? 'Sim' : 'Nao'));
+  function pinta() { bs.forEach((b, i) => b.setAttribute('aria-pressed', String((i === 0) === v))); }
+  pinta();
+  return { el: h('div', { class: 'linha' }, bs), get: () => v };
+}
+
+/* modais (cartoes) */
+let modalEl = null, codigoCartao = null, ultimoFechamento = { codigo: null, t: 0 };
+function abreModal(nodes, codigo, foco) {
+  fechaModal();
+  modalEl = h('div', { class: 'fundo', role: 'dialog', 'aria-modal': 'true' }, h('div', { class: 'cartao' }, nodes));
+  document.body.append(modalEl);
+  codigoCartao = codigo || null;
+  if (foco) setTimeout(() => foco.focus(), 0);
+}
+function fechaModal() {
+  if (!modalEl) return;
+  modalEl.remove();
+  modalEl = null;
+  if (codigoCartao) ultimoFechamento = { codigo: codigoCartao, t: Date.now() };
+  codigoCartao = null;
+}
+function perguntar(msg, opcoes) {
+  abreModal([h('p', {}, msg), h('div', { class: 'linha' },
+    opcoes.map(o => botao(o[0], () => { fechaModal(); o[1](); }, o[2])))]);
+}
+
+/* ---------- tela inicial (A) ---------- */
+function contagemAberta() { return db.contagens.find(c => c.status === 'aberta'); }
+function ehIphoneNaoInstalado() {
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const instalado = navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  return ios && !instalado;
+}
+function telaInicio() {
+  ui = null;
+  salvarUi(null);
+  const ab = contagemAberta();
+  const fin = db.contagens.filter(c => c.status === 'finalizada').reverse();
+  tela('inicio',
+    h('header', { class: 'topo' }, h('h1', {}, 'Inventario')),
+    ehIphoneNaoInstalado() ? h('div', { class: 'faixa amarela' }, 'Adicione a Tela de Inicio para nao perder os dados') : null,
+    ab ? botao('Continuar contagem', () => telaAreas(ab.id), 'principal cheio') : botao('Nova contagem', telaNova, 'principal cheio'),
+    ab ? h('p', {}, h('small', {}, ab.nome)) : null,
+    h('div', { class: 'linha' },
+      botao('Produtos', () => telaBusca('produtos')),
+      botao('Backup', telaBackup),
+      botao('Etiquetas', telaEtiquetas)),
+    h('h2', {}, 'Contagens finalizadas'),
+    fin.length ? h('ul', { class: 'lista' }, fin.map(c => h('li', {},
+      h('button', { type: 'button', class: 'item', onclick: () => telaFinal(c.id) }, c.nome),
+      botao('Exportar planilha', () => exportarCsv(c))))) :
+      h('p', { class: 'vazio' }, 'Nenhuma contagem finalizada ainda.'));
+}
+
+/* ---------- nova contagem e areas (B) ---------- */
+function telaNova() {
+  const inp = h('input', { type: 'text', maxlength: '80', value: 'Inventario ' + dataBr(new Date()) });
+  const f = campo('Nome da contagem', inp);
+  tela('nova', topo('Nova contagem', telaInicio), f,
+    botao('Criar contagem', () => {
+      const n = inp.value.trim();
+      if (!n || n.length > 80) { f.erro('Digite o nome (1 a 80 caracteres).'); return; }
+      if (contagemAberta()) { telaInicio(); return; }
+      const c = novaContagem(n);
+      db.contagens.push(c);
+      salvar();
+      telaAreas(c.id);
+    }, 'principal cheio'));
+}
+function telaAreas(id) {
+  const cont = db.contagens.find(c => c.id === id);
+  if (!cont) { telaInicio(); return; }
+  if (cont.status !== 'aberta') { telaFinal(id); return; }
+  ui = null;
+  salvarUi(null);
+  const nomes = ['Loja toda'].concat(cont.areas.map(a => a.nome).filter(n => n !== 'Loja toda'));
+  const inNova = h('input', { type: 'text', maxlength: '40', autocomplete: 'off' });
+  const fNova = campo('Nova area', inNova, 'Ex.: Prateleira 1, Vitrine, Deposito');
+  tela('areas', topo(cont.nome, telaInicio),
+    h('h2', {}, 'Escolha a area'),
+    h('ul', { class: 'lista' }, nomes.map(n => {
+      const a = cont.areas.find(x => x.nome === n);
+      return h('li', {}, h('button', { type: 'button', class: 'item', onclick: () => entrarArea(cont, n) },
+        n, a && a.concluida ? h('span', { class: 'marca' }, 'concluida') : null));
+    })),
+    fNova,
+    botao('Criar area', () => {
+      const n = inNova.value.trim();
+      if (!n || n.length > 40) { fNova.erro('Digite o nome da area (1 a 40 caracteres).'); return; }
+      if (nomes.some(x => nrm(x) === nrm(n))) { fNova.erro('Ja existe uma area com esse nome.'); return; }
+      entrarArea(cont, n);
+    }, 'cheio'),
+    h('h2', {}, 'Terminou?'),
+    botao('Finalizar contagem', () => {
+      const abertas = nomes.filter(n => { const a = cont.areas.find(x => x.nome === n); return !a || !a.concluida; });
+      const usadas = abertas.filter(n => cont.areas.some(x => x.nome === n));
+      const msg = usadas.length ? 'Estas areas nao foram marcadas como concluidas: ' + usadas.join(', ') + '. Finalizar mesmo assim?' :
+        'Finalizar a contagem? Depois disso ela fica so para leitura.';
+      perguntar(msg, [['Finalizar', () => {
+        cont.status = 'finalizada';
+        cont.finalizadaEm = new Date().toISOString();
+        salvar();
+        telaFinal(cont.id);
+      }, 'principal'], ['Voltar', () => {}]]);
+    }, 'perigo cheio'));
+}
+function entrarArea(cont, nome) {
+  let a = cont.areas.find(x => x.nome === nome);
+  const abrir = () => { ui = { contId: cont.id, area: nome }; telaContagem(); };
+  if (!a) {
+    a = { nome: nome, concluida: false };
+    cont.areas.push(a);
+    salvar();
+  } else if (a.concluida) {
+    perguntar('Reabrir area?', [['Sim', () => { a.concluida = false; salvar(); abrir(); }, 'principal'], ['Nao', () => {}]]);
+    return;
+  }
+  abrir();
+}
+
+/* ---------- leitura (camera) ---------- */
+let detectorP = null, stream = null, timer = null;
+function detector() {
+  if (!detectorP) {
+    detectorP = (async () => {
+      await BarcodeDetectionAPI.prepareZXingModule({ overrides: { locateFile: (p) => './vendor/zxing_reader-3.1.1.wasm' } });
+      return new BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATOS });
+    })();
+    detectorP.catch(() => { detectorP = null; });
+  }
+  return detectorP;
+}
+function pararCamera() {
+  if (timer) { clearInterval(timer); timer = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+async function iniciarCamera(video, msg) {
+  let s = null;
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('sem camera');
+    s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+  } catch (e) {
+    msg.textContent = 'Camera bloqueada. Use Digitar codigo ou Buscar por nome.';
+    msg.hidden = false;
+    video.hidden = true;
+    return;
+  }
+  if (!video.isConnected) { s.getTracks().forEach(t => t.stop()); return; }
+  stream = s;
+  video.srcObject = s;
+  video.play().catch(() => {});
+  let det;
+  try { det = await detector(); } catch (e) {
+    msg.textContent = 'Nao foi possivel iniciar a leitura. Use Digitar codigo ou Buscar por nome.';
+    msg.hidden = false;
+    return;
+  }
+  if (stream !== s) return;
+  let ocupado = false;
+  timer = setInterval(async () => {
+    if (ocupado || modalEl || video.readyState < 2) return;
+    ocupado = true;
+    try {
+      const r = await det.detect(video);
+      if (r.length) aoLerCodigo(r[0].rawValue, 'camera');
+    } catch (e) { /* proximo quadro */ }
+    ocupado = false;
+  }, 200);
+}
+
+/* ---------- contagem (C) ---------- */
+function ctxAtual() {
+  if (!ui || (telaAtual !== 'contagem' && telaAtual !== 'busca-contar')) return null;
+  const cont = db.contagens.find(c => c.id === ui.contId);
+  if (!cont || cont.status !== 'aberta') return null;
+  return { cont: cont, area: ui.area, aposSomar: telaAtual === 'contagem' ? () => atualizaLista() : telaContagem };
+}
+function aoLerCodigo(codigo, origem) {
+  codigo = normCodigo(codigo);
+  if (!codigo || modalEl) return;
+  if (origem === 'camera' && ultimoFechamento.codigo === codigo && Date.now() - ultimoFechamento.t < 2000) return;
+  const ctx = ctxAtual();
+  if (!ctx) return;
+  abrirProduto(codigo, origem, ctx);
+}
+function abrirProduto(codigo, origem, ctx) {
+  const p = db.produtos[codigo];
+  if (p) { cartaoProduto(p, origem, ctx, false); return; }
+  if (!podeCriarProduto()) { cartaoLimite(); return; }
+  cartaoProduto({ codigo: codigo, nome: '', granel: false, gerado: false }, origem, ctx, true);
+}
+function abrirSemCodigo(ctx, nomeInicial) {
+  if (!podeCriarProduto()) { cartaoLimite(); return; }
+  const g = gerarCodigo(db);
+  cartaoProduto({ codigo: g.codigo, nome: nomeInicial || '', granel: false, gerado: true, seq: g.seq }, 'sem-codigo', ctx, true);
+}
+function cartaoLimite() {
+  const f = $('#tpl-limite').content.cloneNode(true);
+  f.querySelector('[data-n]').textContent = LIMITE_PRODUTOS;
+  f.querySelector('[data-t]').textContent = Object.keys(db.produtos).length;
+  const a = f.querySelector('[data-link]');
+  if (!a.getAttribute('href')) a.remove();
+  abreModal([f, botao('Fechar', fechaModal, 'principal cheio')]);
+}
+
+const MSG_PRECO = 'Preco invalido. Use mais que zero, com ate 2 casas.';
+const MSG_PESO = 'Peso invalido. Use mais que zero, ate 999,999 kg e 3 casas.';
+function opcDec(input, f, casas, max, msg) {
+  const t = input.value.trim();
+  if (t === '') return { ok: true, v: null };
+  const v = lerDec(t, casas, max);
+  if (v === null || v === 0) { f.erro(msg); return { ok: false, v: null }; }
+  return { ok: true, v: v };
+}
+function lerLanc(inUn, fUn, inKg, fKg, granel, maxUn) {
+  const un = lerInt(inUn.value, maxUn);
+  const g = granel ? lerDec(inKg.value, 3, 999999) : 0;
+  if (un === null) fUn.erro('Use so numeros inteiros, de 0 a ' + maxUn + '.');
+  if (g === null) fKg.erro('Kg invalido. Use ate 3 casas, de 0 a 999,999.');
+  return (un === null || g === null) ? null : { un: un, g: g };
+}
+function setOpc(o, k, v) { if (v) o[k] = v; else delete o[k]; }
+
+function cartaoProduto(p, origem, ctx, novo) {
+  let granel = !!p.granel;
+  const inNome = h('input', { type: 'text', maxlength: '80', autocomplete: 'off', value: p.nome || '' });
+  const inPeso = h('input', { type: 'text', inputmode: 'decimal', value: p.pesoGramas ? fmtKgCurto(p.pesoGramas) : '' });
+  const inPU = h('input', { type: 'text', inputmode: 'decimal', value: p.precoCentavos ? fmtPreco(p.precoCentavos) : '' });
+  const inPK = h('input', { type: 'text', inputmode: 'decimal', value: p.precoKgCentavos ? fmtPreco(p.precoKgCentavos) : '' });
+  const inUn = h('input', { type: 'text', inputmode: 'numeric', value: (origem === 'camera' || origem === 'digitado') ? '1' : '' });
+  const inKg = h('input', { type: 'text', inputmode: 'decimal', value: '' });
+  const fNome = campo('Nome do produto', inNome);
+  const fPeso = campo('Peso de uma unidade (kg), se tiver', inPeso, 'Ex.: 15 para saco de 15 kg');
+  const fPU = campo('Preco da unidade (opcional)', inPU);
+  const fPK = campo('Preco do kg (opcional)', inPK);
+  const fUn = campo('Unidades (sacos fechados)', inUn);
+  const fKg = campo('Kg avulso', inKg, 'Saco aberto, pesado');
+  const sn = simNao(granel, v => { granel = v; mostra(); });
+  function mostra() { fKg.hidden = !granel; fPK.hidden = !granel; }
+  mostra();
+
+  function confirmar() {
+    [fNome, fPeso, fPU, fPK, fUn, fKg].forEach(f => f.erro(''));
+    let ok = true, nome = p.nome;
+    if (novo) {
+      nome = inNome.value.trim();
+      if (!nome || nome.length > 80) { fNome.erro('Digite o nome (1 a 80 caracteres).'); ok = false; }
+    }
+    const peso = novo ? opcDec(inPeso, fPeso, 3, 999999, MSG_PESO) : { ok: true, v: p.pesoGramas || null };
+    const pu = opcDec(inPU, fPU, 2, PRECO_MAX, MSG_PRECO);
+    const pk = granel ? opcDec(inPK, fPK, 2, PRECO_MAX, MSG_PRECO) : { ok: true, v: null };
+    const l = lerLanc(inUn, fUn, inKg, fKg, granel, 9999);
+    if (!ok || !peso.ok || !pu.ok || !pk.ok || !l) return;
+    if (l.un === 0 && l.g === 0) { fUn.erro('Informe unidades ou kg avulso, maior que zero.'); return; }
+    if (novo) {
+      const q = { codigo: p.codigo, nome: nome, granel: granel, gerado: !!p.gerado };
+      if (peso.v) q.pesoGramas = peso.v;
+      if (pu.v) q.precoCentavos = pu.v;
+      if (granel && pk.v) q.precoKgCentavos = pk.v;
+      db.produtos[q.codigo] = q;
+      if (p.gerado) db.seqCodigo = Math.max(db.seqCodigo, p.seq);
+    } else {
+      setOpc(p, 'precoCentavos', pu.v);
+      if (p.granel) setOpc(p, 'precoKgCentavos', pk.v);
+    }
+    somar(ctx.cont, ctx.area, p.codigo, l.un, l.g);
+    salvar();
+    if (navigator.vibrate) navigator.vibrate(80);
+    fechaModal();
+    ctx.aposSomar();
+  }
+
+  const nodes = novo ? [
+    h('h2', {}, 'Produto novo'),
+    h('p', {}, (p.gerado ? 'Codigo gerado: ' : 'Codigo lido: ') + p.codigo),
+    fNome,
+    h('div', { class: 'campo' }, h('span', { class: 'rot' }, 'Tem saco aberto vendido a granel?'), sn.el),
+    fPeso, fPU, fPK, fUn, fKg,
+    h('div', { class: 'linha' }, botao('Salvar e somar', confirmar, 'principal'), botao('Cancelar', fechaModal))
+  ] : [
+    h('h2', {}, 'Produto conhecido'),
+    h('p', {}, h('strong', {}, p.nome)),
+    p.pesoGramas ? h('p', {}, 'Peso da unidade: ' + fmtKgCurto(p.pesoGramas) + ' kg') : null,
+    fUn, fKg, fPU, fPK,
+    h('div', { class: 'linha' },
+      botao('Somar', confirmar, 'principal'),
+      botao('Editar produto', () => {
+        fechaModal();
+        telaProdutoForm(p, () => { telaContagem(); abrirProduto(p.codigo, origem, ctxAtual()); });
+      }),
+      botao('Cancelar', fechaModal))
+  ];
+  abreModal(nodes, p.codigo, novo ? inNome : (origem === 'busca' && granel ? inKg : inUn));
+}
+
+function linhaItem(p, it) {
+  const partes = [it.un + ' un'];
+  if (p.granel) partes.push(fmtKg(it.g) + ' kg');
+  return partes.join(' + ');
+}
+function telaContagem() {
+  const ctx0 = ui && db.contagens.find(c => c.id === ui.contId);
+  if (!ctx0 || ctx0.status !== 'aberta') { telaInicio(); return; }
+  const cont = ctx0, area = ui.area;
+  salvarUi(ui);
+  const video = h('video', { playsinline: true, autoplay: true });
+  video.muted = true;
+  const msg = h('p', { class: 'camera-msg', hidden: true });
+  const inCod = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'Digitar codigo' });
+  const fCod = campo('Digitar codigo', inCod);
+  const lista = h('ul', { class: 'lista' });
+  const resumo = h('p', { class: 'vazio' });
+
+  function corrigir(c) {
+    const p = prod(db, c), it = cont.itens[area][c];
+    const inUn = h('input', { type: 'text', inputmode: 'numeric', value: String(it.un) });
+    const inKg = h('input', { type: 'text', inputmode: 'decimal', value: fmtKg(it.g) });
+    const fUn = campo('Unidades (sacos fechados)', inUn);
+    const fKg = campo('Kg avulso', inKg);
+    fKg.hidden = !p.granel;
+    abreModal([h('h2', {}, p.nome), fUn, fKg, h('p', {}, h('small', {}, 'Com os dois em 0 o item sai da lista.')),
+      h('div', { class: 'linha' },
+        botao('Salvar', () => {
+          fUn.erro(''); fKg.erro('');
+          const l = lerLanc(inUn, fUn, inKg, fKg, p.granel, 999999);
+          if (!l) return;
+          definirItem(cont, area, c, l.un, l.g);
+          salvar();
+          fechaModal();
+          atualizaLista();
+        }, 'principal'),
+        db.produtos[c] ? botao('Editar produto', () => {
+          fechaModal();
+          telaProdutoForm(db.produtos[c], telaContagem);
+        }) : null,
+        botao('Cancelar', fechaModal))], null, inUn);
+  }
+  atualizaLista = function () {
+    const its = cont.itens[area] || {};
+    const cods = Object.keys(its).sort((a, b) => col.compare(prod(db, a).nome, prod(db, b).nome));
+    lista.replaceChildren(...cods.map(c => {
+      const p = prod(db, c);
+      return h('li', {}, h('button', { type: 'button', class: 'item', onclick: () => corrigir(c) },
+        h('span', {}, p.nome), h('span', {}, linhaItem(p, its[c]))));
+    }));
+    resumo.textContent = cods.length ? cods.length + ' produtos nesta area. Toque num item para corrigir.' : 'Nenhum item lido nesta area ainda.';
+  };
+  atualizaLista();
+
+  tela('contagem',
+    h('header', { class: 'topo' }, h('h1', {}, area)),
+    h('div', { class: 'linha' },
+      botao('Trocar area', () => telaAreas(cont.id)),
+      botao('Area concluida', () => {
+        const a = cont.areas.find(x => x.nome === area);
+        if (a) a.concluida = true;
+        salvar();
+        telaAreas(cont.id);
+      }, 'principal')),
+    h('div', { class: 'camera' }, video, h('div', { class: 'miraa' }), msg),
+    h('div', { class: 'linha' }, h('div', { style: 'flex:3;min-width:160px' }, fCod),
+      h('button', { type: 'button', class: 'principal', style: 'align-self:center;flex:1', onclick: () => {
+        fCod.erro('');
+        const c = normCodigo(inCod.value);
+        if (!c || c.length > 48) { fCod.erro('Digite o codigo de barras.'); return; }
+        inCod.value = '';
+        aoLerCodigo(c, 'digitado');
+      } }, 'OK')),
+    h('div', { class: 'linha' },
+      botao('Buscar por nome', () => telaBusca('contar')),
+      botao('Produto sem codigo', () => { const c = ctxAtual(); if (c) abrirSemCodigo(c, ''); })),
+    h('h2', {}, 'Itens desta area'), resumo, lista);
+  limpeza = () => { pararCamera(); atualizaLista = function () {}; };
+  iniciarCamera(video, msg);
+}
+
+/* ---------- busca por nome (D) e lista de produtos (I) ---------- */
+function telaBusca(modo, nomeInicial) {
+  const contar = modo === 'contar';
+  if (contar && !(ui && db.contagens.some(c => c.id === ui.contId && c.status === 'aberta'))) { telaInicio(); return; }
+  const inp = h('input', { type: 'search', autocomplete: 'off', placeholder: 'Parte do nome do produto', value: nomeInicial || '' });
+  const res = h('div');
+  function filtra() {
+    const q = nrm(inp.value);
+    const todos = Object.values(db.produtos);
+    const ach = (q ? todos.filter(p => nomeN(p).includes(q)) : todos).sort((a, b) => col.compare(a.nome, b.nome));
+    const itens = ach.slice(0, 100).map(p => h('li', {}, h('button', { type: 'button', class: 'item', onclick: () => {
+      if (contar) aoLerCodigo(p.codigo, 'busca');
+      else telaProdutoForm(p, () => telaBusca('produtos'));
+    } }, h('span', {}, p.nome), p.granel ? h('small', {}, 'granel') : null)));
+    trocaFilhos(res,
+      ach.length ? h('ul', { class: 'lista' }, itens) : h('p', { class: 'vazio' }, todos.length ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado ainda.'),
+      ach.length > 100 ? h('p', { class: 'vazio' }, 'Mostrando 100 de ' + ach.length + '. Digite mais letras para filtrar.') : null,
+      (!ach.length && contar) ? botao('Cadastrar sem codigo', () => {
+        const c = ctxAtual();
+        if (c) abrirSemCodigo(c, inp.value.trim().slice(0, 80));
+      }, 'principal cheio') : null);
+  }
+  inp.addEventListener('input', filtra);
+  tela(contar ? 'busca-contar' : 'busca-produtos',
+    topo(contar ? 'Buscar por nome' : 'Produtos', contar ? telaContagem : telaInicio),
+    LIMITE_PRODUTOS > 0 ? h('p', {}, Object.keys(db.produtos).length + ' de ' + LIMITE_PRODUTOS + ' produtos (versao gratis)') : null,
+    inp, res);
+  filtra();
+}
+
+function telaProdutoForm(p, voltar) {
+  let granel = !!p.granel;
+  const inCod = h('input', { type: 'text', readonly: true, value: p.codigo });
+  const inNome = h('input', { type: 'text', maxlength: '80', autocomplete: 'off', value: p.nome });
+  const inPeso = h('input', { type: 'text', inputmode: 'decimal', value: p.pesoGramas ? fmtKgCurto(p.pesoGramas) : '' });
+  const inPU = h('input', { type: 'text', inputmode: 'decimal', value: p.precoCentavos ? fmtPreco(p.precoCentavos) : '' });
+  const inPK = h('input', { type: 'text', inputmode: 'decimal', value: p.precoKgCentavos ? fmtPreco(p.precoKgCentavos) : '' });
+  const fCod = campo('Codigo (nao muda)', inCod);
+  const fNome = campo('Nome do produto', inNome);
+  const fPeso = campo('Peso de uma unidade (kg)', inPeso, 'Ex.: 15 para saco de 15 kg');
+  const fPU = campo('Preco da unidade (opcional)', inPU);
+  const fPK = campo('Preco do kg (opcional)', inPK);
+  const erroGranel = h('div', { class: 'erro', role: 'alert' });
+  const sn = simNao(granel, v => { granel = v; erroGranel.textContent = ''; fPK.hidden = !granel; });
+  fPK.hidden = !granel;
+  tela('produto-form', topo('Editar produto', voltar), fCod, fNome,
+    h('div', { class: 'campo' }, h('span', { class: 'rot' }, 'Tem saco aberto vendido a granel?'), sn.el, erroGranel),
+    fPeso, fPU, fPK,
+    h('div', { class: 'linha' },
+      botao('Salvar', () => {
+        [fNome, fPeso, fPU, fPK].forEach(f => f.erro(''));
+        erroGranel.textContent = '';
+        let ok = true;
+        const nome = inNome.value.trim();
+        if (!nome || nome.length > 80) { fNome.erro('Digite o nome (1 a 80 caracteres).'); ok = false; }
+        const peso = opcDec(inPeso, fPeso, 3, 999999, MSG_PESO);
+        const pu = opcDec(inPU, fPU, 2, PRECO_MAX, MSG_PRECO);
+        const pk = granel ? opcDec(inPK, fPK, 2, PRECO_MAX, MSG_PRECO) : { ok: true, v: null };
+        if (p.granel && !granel && temKgAvulso(db, p.codigo)) {
+          erroGranel.textContent = 'Este produto tem kg avulso contado. Zere antes de tirar o granel.';
+          ok = false;
+        }
+        if (!ok || !peso.ok || !pu.ok || !pk.ok) return;
+        p.nome = nome;
+        p.granel = granel;
+        setOpc(p, 'pesoGramas', peso.v);
+        setOpc(p, 'precoCentavos', pu.v);
+        setOpc(p, 'precoKgCentavos', granel ? pk.v : null);
+        salvar();
+        voltar();
+      }, 'principal'),
+      botao('Cancelar', voltar)),
+    botao('Apagar produto', () => {
+      if (emContagemFinalizada(db, p.codigo)) { perguntar('Este produto esta numa contagem finalizada e nao pode ser apagado.', [['Ok', () => {}, 'principal']]); return; }
+      perguntar('Apagar "' + p.nome + '"? O que foi contado dele na contagem aberta tambem sai.', [['Apagar', () => {
+        apagarProduto(db, p.codigo);
+        salvar();
+        telaBusca('produtos');
+      }, 'perigo'], ['Voltar', () => {}]]);
+    }, 'perigo cheio'));
+}
+
+/* ---------- finalizada (F) ---------- */
+function telaFinal(id) {
+  const cont = db.contagens.find(c => c.id === id);
+  if (!cont) { telaInicio(); return; }
+  ui = null;
+  salvarUi(null);
+  const avisos = h('div');
+  const acoes = [botao('Exportar planilha', () => exportarCsv(cont), 'principal')];
+  const blocos = cont.areas.map(a => {
+    const its = cont.itens[a.nome] || {};
+    const cods = Object.keys(its).sort((x, y) => col.compare(prod(db, x).nome, prod(db, y).nome));
+    return h('div', {}, h('h2', {}, a.nome),
+      cods.length ? h('ul', { class: 'lista' }, cods.map(c => h('li', {},
+        h('span', { class: 'item', style: 'padding:6px 0' }, prod(db, c).nome + ' - ' + linhaItem(prod(db, c), its[c])))))
+        : h('p', { class: 'vazio' }, 'Sem itens.'));
+  });
+  tela('final', topo(cont.nome, telaInicio),
+    h('p', {}, 'Contagem finalizada em ' + dataBr(new Date(cont.finalizadaEm || Date.now())) + '.'),
+    h('div', { class: 'faixa amarela' }, 'Faca tambem o backup.'),
+    h('div', { class: 'linha' }, acoes),
+    avisos,
+    botao('Backup', telaBackup, 'cheio'),
+    botao('Reabrir contagem', () => {
+      if (contagemAberta()) { perguntar('Ja existe uma contagem aberta. Finalize ela antes de reabrir esta.', [['Ok', () => {}, 'principal']]); return; }
+      perguntar('Reabrir esta contagem para corrigir? Ela volta a aceitar leituras.', [['Reabrir', () => {
+        reabrirContagem(db, cont.id);
+        salvar();
+        telaAreas(cont.id);
+      }, 'principal'], ['Voltar', () => {}]]);
+    }, 'cheio'),
+    blocos);
+}
+
+/* ---------- etiquetas (E) ---------- */
+function telaEtiquetas() {
+  const gerados = Object.values(db.produtos).filter(p => p.gerado).sort((a, b) => col.compare(a.nome, b.nome));
+  const itens = gerados.map(p => {
+    const w = h('div');
+    w.innerHTML = svgEan13(p.codigo, 2);
+    return h('div', { class: 'etq' }, h('strong', {}, p.nome), h('div', {}, p.codigo), w);
+  });
+  tela('etiquetas', topo('Etiquetas', telaInicio),
+    gerados.length ? h('div', { class: 'nao-imprime' }, botao('Imprimir', () => window.print(), 'principal cheio')) : null,
+    gerados.length ? itens : h('p', { class: 'vazio' }, 'Nenhum produto sem codigo cadastrado. Quando houver, a etiqueta aparece aqui.'));
+}
+
+/* ---------- backup (G) ---------- */
+function telaBackup() {
+  let anterior = null;
+  try { anterior = lerBackup(localStorage.getItem(CHAVE_ANTERIOR) || ''); } catch (e) { /* sem copia */ }
+  const msg = h('p', { class: 'erro', role: 'alert' });
+  const arq = h('input', { type: 'file', accept: '.json,application/json', hidden: true, onchange: async () => {
+    msg.textContent = '';
+    const f = arq.files && arq.files[0];
+    if (!f) return;
+    let txt = '';
+    try { txt = await f.text(); } catch (e) { /* cai em invalido */ }
+    arq.value = '';
+    const o = lerBackup(txt);
+    if (!o) { msg.textContent = 'Arquivo de backup invalido'; return; }
+    perguntar('Este celular: ' + Object.keys(db.produtos).length + ' produtos, ' + db.contagens.length +
+      ' contagens. Arquivo: ' + Object.keys(o.produtos).length + ' produtos, ' + o.contagens.length + ' contagens.',
+      [['Substituir', () => {
+        try { localStorage.setItem(CHAVE_ANTERIOR, JSON.stringify(db)); } catch (e) { /* sem espaco: segue sem copia */ }
+        db = estadoDe(o);
+        bloqueado = false;
+        salvar();
+        telaInicio();
+      }, 'perigo'], ['Cancelar', () => {}]]);
+  } });
+  tela('backup', topo('Backup', telaInicio),
+    h('p', {}, 'Guarde o backup para trocar de celular ou se o aparelho for perdido.'),
+    botao('Exportar backup', () => {
+      entregar('inventario-backup-' + dataArq(new Date()) + '.json',
+        JSON.stringify(Object.assign({}, db, { exportadoEm: new Date().toISOString() })), 'application/json');
+    }, 'principal cheio'),
+    botao('Importar backup', () => arq.click(), 'cheio'),
+    anterior ? botao('Desfazer ultima importacao', () => {
+      perguntar('Voltar os dados para como estavam antes da ultima importacao?', [['Desfazer', () => {
+        db = estadoDe(anterior);
+        bloqueado = false;
+        salvar();
+        try { localStorage.removeItem(CHAVE_ANTERIOR); } catch (e) { /* ignora */ }
+        telaInicio();
+      }, 'perigo'], ['Cancelar', () => {}]]);
+    }, 'cheio') : null,
+    arq, msg);
+}
+
+/* ---------- autoteste (#autoteste) ---------- */
+async function autoteste() {
+  const antes = localStorage.getItem(CHAVE);
+  const falhas = [];
+  let n = 0;
+  const ok = (nome, cond) => { n++; if (!cond) falhas.push(nome); };
+  const eq = (nome, a, b) => { n++; if (a !== b) falhas.push(nome + ' (obtido ' + JSON.stringify(a) + ', esperado ' + JSON.stringify(b) + ')'); };
+  const cont = () => { const c = novaContagem('T'); c.id = 't'; return c; };
+  try {
+    /* EAN-13 */
+    eq('dv 4006381333931', dvEan13('400638133393'), 1);
+    eq('dv 7891000100103', dvEan13('789100010010'), 3);
+    eq('dv 5901234123457', dvEan13('590123412345'), 7);
+    const g = gerarCodigo(dbVazio());
+    ok('codigo gerado 299 com 13 digitos', /^299\d{10}$/.test(g.codigo));
+    eq('codigo gerado verificador', dvEan13(g.codigo.slice(0, 12)), Number(g.codigo[12]));
+    const dg = dbVazio();
+    dg.produtos[g.codigo] = { nome: 'x' };
+    ok('codigo gerado pula existente', gerarCodigo(dg).codigo !== g.codigo);
+    eq('upc_a vira 13 digitos', normCodigo('012345678905'), '0012345678905');
+
+    /* numeros */
+    const soma = lerDec('1,25', 3, 999999) + lerDec('0.5', 3, 999999);
+    eq('kg 1,25 + 0.5 em gramas', soma, 1750);
+    eq('kg formatado', fmtKg(soma), '1,750');
+    eq('kg abc invalido', lerDec('abc', 3, 999999), null);
+    eq('preco -1 invalido', lerDec('-1', 2, PRECO_MAX), null);
+    eq('kg 4 casas invalido', lerDec('1,2345', 3, 999999), null);
+    eq('peso curto 2500', fmtKgCurto(2500), '2,5');
+    eq('peso curto 15000', fmtKgCurto(15000), '15');
+
+    /* somar e CSV */
+    const d = dbVazio();
+    const codR = '7891000100103', codB = '4006381333931';
+    d.produtos[codR] = { codigo: codR, nome: 'Racao Teste', granel: true, pesoGramas: 15000, precoCentavos: 19990, precoKgCentavos: 1450, gerado: false };
+    d.produtos[codB] = { codigo: codB, nome: 'Brinquedo Teste', granel: false, gerado: false };
+    const c1 = cont();
+    somar(c1, 'A', codB, 1, 0);
+    somar(c1, 'A', codB, 1, 0);
+    eq('somar 1 + 1', c1.itens.A[codB].un, 2);
+
+    const c2 = cont();
+    c2.areas = [{ nome: 'Prateleira 1', concluida: false }, { nome: 'Loja toda', concluida: false }];
+    somar(c2, 'Prateleira 1', codB, 2, 0);
+    somar(c2, 'Loja toda', codB, 1, 0);
+    const l2 = gerarCsv(d, c2).split('\r\n').filter(x => x);
+    eq('csv 2 areas = cabecalho + 2 linhas', l2.length, 3);
+    eq('csv cabecalho com 11 colunas', l2[0].split(';').length, 11);
+    eq('csv unidades no total linha 1', l2[1].split(';')[9], '3');
+    eq('csv unidades no total linha 2', l2[2].split(';')[9], '3');
+    eq('csv unidades das areas', l2[1].split(';')[3] + l2[2].split(';')[3], '21');
+
+    const c3 = cont();
+    c3.areas = [{ nome: 'A', concluida: false }];
+    somar(c3, 'A', codR, 3, 2500);
+    const f3 = gerarCsv(d, c3).split('\r\n')[1].split(';');
+    eq('csv unidades 3', f3[3], '3');
+    eq('csv kg avulso 2,500', f3[4], '2,500');
+    eq('csv total em kg 47,500', f3[6], '47,500');
+    eq('csv codigo como formula', f3[1], '="' + codR + '"');
+    eq('total g sem peso e com sacos', totalG({}, 3, 0), null);
+    eq('total g sem peso e so avulso', totalG({}, 0, 2500), 2500);
+    const d2 = JSON.parse(JSON.stringify(d));
+    delete d2.produtos[codR].pesoGramas;
+    const f3b = gerarCsv(d2, c3).split('\r\n')[1].split(';');
+    eq('csv sem peso: total vazio', f3b[6], '');
+    eq('csv sem peso: kg no total vazio', f3b[10], '');
+    const c3b = cont();
+    c3b.areas = [{ nome: 'A', concluida: false }];
+    somar(c3b, 'A', codR, 0, 2500);
+    const f3c = gerarCsv(d2, c3b).split('\r\n')[1].split(';');
+    eq('csv granel puro: unidades 0', f3c[3], '0');
+    eq('csv granel puro: total igual ao avulso', f3c[6], '2,500');
+    const f3d = gerarCsv(d, c2).split('\r\n')[1].split(';');
+    eq('csv nao granel: kg avulso vazio', f3d[4], '');
+
+    const csv = gerarCsv(d, c3);
+    const bytes = new TextEncoder().encode(csv);
+    ok('csv comeca com BOM', bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF);
+    ok('csv usa ponto e virgula', csv.split('\r\n')[0].indexOf(';') > 0);
+    ok('csv usa CRLF', csv.indexOf('\r\n') > 0 && !/[^\r]\n/.test(csv));
+    const d3 = dbVazio();
+    d3.produtos.a = { codigo: 'a', nome: '=SOMA(1)', granel: false };
+    d3.produtos.b = { codigo: 'b', nome: 'a;b "x"', granel: false };
+    const c4 = cont();
+    c4.areas = [{ nome: 'A', concluida: false }];
+    somar(c4, 'A', 'a', 1, 0);
+    somar(c4, 'A', 'b', 1, 0);
+    const csv4 = gerarCsv(d3, c4);
+    ok('nome com = leva apostrofo', csv4.indexOf("\r\n'=SOMA(1);") > 0);
+    ok('nome com ; e aspas sai entre aspas', csv4.indexOf('"a;b ""x""";') > 0);
+
+    /* correcao de item */
+    definirItem(c1, 'A', codB, 0, 0);
+    ok('item zerado sai da area', !c1.itens.A[codB]);
+
+
+    /* backup */
+    const antesDb = JSON.stringify(db);
+    ok('backup JSON quebrado recusado', lerBackup('{quebrado') === null);
+    ok('backup versao 2 recusado', lerBackup('{"versao":2,"produtos":{},"contagens":[]}') === null);
+    ok('backup produtos lista recusado', lerBackup('{"versao":1,"produtos":[],"contagens":[]}') === null);
+    ok('backup contagens objeto recusado', lerBackup('{"versao":1,"produtos":{},"contagens":{}}') === null);
+    ok('backup valido aceito', lerBackup('{"versao":1,"produtos":{},"contagens":[]}') !== null);
+    eq('backup invalido nao muda o estado', JSON.stringify(db), antesDb);
+
+    /* reabrir contagem e apagar produto */
+    const dr = dbVazio();
+    dr.produtos.p1 = { codigo: 'p1', nome: 'A', granel: false };
+    dr.produtos.p2 = { codigo: 'p2', nome: 'B', granel: false };
+    const f1 = novaContagem('F'); f1.id = 'f1'; f1.status = 'finalizada'; f1.finalizadaEm = 'x'; f1.itens = { 'Loja toda': { p1: { un: 1, g: 0 } } };
+    const a1 = novaContagem('A'); a1.id = 'a1'; a1.itens = { 'Loja toda': { p2: { un: 2, g: 0 } } };
+    dr.contagens = [f1, a1];
+    ok('reabrir recusa com outra aberta', reabrirContagem(dr, 'f1') === false && f1.status === 'finalizada');
+    ok('apagar recusa produto em contagem finalizada', apagarProduto(dr, 'p1') === false && !!dr.produtos.p1);
+    ok('apagar tira produto e item da contagem aberta', apagarProduto(dr, 'p2') === true && !dr.produtos.p2 && !a1.itens['Loja toda'].p2);
+    dr.contagens = [f1];
+    ok('reabrir sem outra aberta', reabrirContagem(dr, 'f1') === true && f1.status === 'aberta' && f1.finalizadaEm === null);
+    eq('codigo com Enter e TAB limpo', normCodigo('789\n000\t0000017'), '7890000000017');
+
+    /* limite da versao gratis */
+    if (LIMITE_PRODUTOS > 0) {
+      const dl = dbVazio();
+      for (let i = 0; i < LIMITE_PRODUTOS - 1; i++) dl.produtos['p' + i] = { nome: 'p' };
+      ok('limite: abaixo do limite pode criar', podeCriarProduto(dl) === true);
+      dl.produtos.ultimo = { nome: 'p' };
+      ok('limite: no limite nao pode criar', podeCriarProduto(dl) === false);
+    }
+
+    /* etiqueta: SVG -> canvas -> leitura */
+    const cod = '7891000100103';
+    const svg = svgEan13(cod, 4);
+    ok('svg gerado', svg.indexOf('<svg') === 0);
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('svg da etiqueta nao carregou')); img.src = url; });
+    URL.revokeObjectURL(url);
+    const cv = document.createElement('canvas');
+    cv.width = img.width + 80;
+    cv.height = img.height + 80;
+    const cx = cv.getContext('2d');
+    cx.fillStyle = '#fff';
+    cx.fillRect(0, 0, cv.width, cv.height);
+    cx.drawImage(img, 40, 40, img.width, img.height);
+    const det = await detector();
+    const lidos = await det.detect(cv);
+    eq('etiqueta lida pela biblioteca', lidos.length ? normCodigo(lidos[0].rawValue) : '', cod);
+  } catch (e) {
+    falhas.push('erro inesperado: ' + (e && e.message ? e.message : e));
+  }
+  ok('autoteste nao tocou na chave de dados', localStorage.getItem(CHAVE) === antes);
+  const titulo = h('h1', { id: 'autoteste-resultado', class: falhas.length ? 'falhou' : 'ok' },
+    falhas.length ? 'AUTOTESTE FALHOU' : 'AUTOTESTE OK');
+  trocaFilhos(app, h('header', { class: 'topo' }, titulo),
+    h('p', {}, n + ' verificacoes, ' + falhas.length + ' falhas.'),
+    falhas.length ? h('pre', { class: 'res' }, falhas.join('\n')) : null);
+}
+
+/* ---------- partida ---------- */
+function iniciar() {
+  if (location.hash === '#autoteste') { autoteste(); return; }
+  if (bloqueado) faixaErro('Os dados deste aparelho nao puderam ser lidos e nada sera gravado. Importe um backup na tela Backup.');
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  const u = lerUi();
+  const cont = u && db.contagens.find(c => c.id === u.contId && c.status === 'aberta');
+  const area = cont && cont.areas.find(a => a.nome === u.area && !a.concluida);
+  if (area) { ui = { contId: cont.id, area: area.nome }; telaContagem(); } else telaInicio();
+}
+window.addEventListener('hashchange', () => location.reload());
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => { faixaErro('O modo sem internet nao ativou. Feche e abra o app de novo com internet.'); }); });
+}
+iniciar();
+</script>
+</body>
+</html>
