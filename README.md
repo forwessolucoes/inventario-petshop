@@ -11,7 +11,7 @@ Eu fiz este app para contar o estoque de um pet shop usando so o celular. Voce a
 ## Versoes
 
 - Versao gratis (este repositorio): ate 50 produtos.
-- Versao completa: sem limite de produtos e e envia o estoque contado para o atendimento automatico no WhatsApp. Contato: [Fale com a Forwes no WhatsApp: (27) 99296-7582](https://wa.me/5527992967582)
+- Versao completa: sem limite de produtos e envia o estoque contado para o atendimento automatico no WhatsApp. Contato: [Fale com a Forwes no WhatsApp: (27) 99296-7582](https://wa.me/5527992967582)
 
 O formato dos dados e o mesmo nas duas. Para passar para a completa, exporte o backup aqui e importe la. Nada se perde.
 
